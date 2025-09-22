@@ -2,10 +2,14 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+type UserRole = 'user' | 'cafeteria_admin' | 'system_admin';
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  userRole: UserRole | null;
+  roleLoading: boolean;
   signUp: (email: string, password: string, displayName?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -17,6 +21,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [roleLoading, setRoleLoading] = useState(false);
+
+  const fetchUserRole = async (userId: string) => {
+    setRoleLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('get_user_role', { user_uuid: userId });
+      if (error) throw error;
+      setUserRole(data as UserRole || 'user');
+    } catch (error) {
+      console.error('Error fetching user role:', error);
+      setUserRole('user');
+    } finally {
+      setRoleLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener
@@ -25,6 +45,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Fetch user role when authenticated
+        if (session?.user) {
+          setTimeout(() => {
+            fetchUserRole(session.user.id);
+          }, 0);
+        } else {
+          setUserRole(null);
+        }
       }
     );
 
@@ -33,6 +62,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      
+      if (session?.user) {
+        fetchUserRole(session.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -70,6 +103,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     loading,
+    userRole,
+    roleLoading,
     signUp,
     signIn,
     signOut

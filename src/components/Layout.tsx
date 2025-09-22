@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, DollarSign, ChefHat, BarChart3 } from 'lucide-react';
+import { LogOut, User, DollarSign, ChefHat, BarChart3, Settings, Users } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface LayoutProps {
@@ -8,7 +8,7 @@ interface LayoutProps {
 }
 
 const Layout = ({ children }: LayoutProps) => {
-  const { user, signOut } = useAuth();
+  const { user, userRole, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -17,12 +17,27 @@ const Layout = ({ children }: LayoutProps) => {
     navigate('/auth');
   };
 
-  const navItems = [
-    { path: '/', icon: ChefHat, label: 'Menu' },
-    { path: '/budget', icon: DollarSign, label: 'Budget' },
-    { path: '/analytics', icon: BarChart3, label: 'Analytics' },
-    { path: '/profile', icon: User, label: 'Profile' },
-  ];
+  const getNavItems = () => {
+    const baseItems = [
+      { path: '/', icon: ChefHat, label: 'Menu' },
+      { path: '/budget', icon: DollarSign, label: 'Budget' },
+      { path: '/analytics', icon: BarChart3, label: 'Analytics' },
+      { path: '/profile', icon: User, label: 'Profile' },
+    ];
+
+    const adminItems = [];
+    
+    if (userRole === 'system_admin') {
+      adminItems.push({ path: '/system-admin', icon: Settings, label: 'System Admin' });
+      adminItems.push({ path: '/cafeteria-admin', icon: Users, label: 'Cafeteria Admin' });
+    } else if (userRole === 'cafeteria_admin') {
+      adminItems.push({ path: '/cafeteria-admin', icon: Users, label: 'Cafeteria Admin' });
+    }
+
+    return [...baseItems, ...adminItems];
+  };
+
+  const navItems = getNavItems();
 
   return (
     <div className="min-h-screen bg-background">

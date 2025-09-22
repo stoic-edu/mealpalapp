@@ -11,13 +11,15 @@ import Budget from "./pages/Budget";
 import Analytics from "./pages/Analytics";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import SystemAdminDashboard from "./pages/SystemAdminDashboard";
+import CafeteriaAdminDashboard from "./pages/CafeteriaAdminDashboard";
 
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, roleLoading } = useAuth();
   
-  if (loading) {
+  if (loading || roleLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -29,9 +31,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, roleLoading } = useAuth();
   
-  if (loading) {
+  if (loading || roleLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -40,6 +42,28 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   }
   
   return user ? <Navigate to="/" /> : <>{children}</>;
+}
+
+function AdminRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole: 'system_admin' | 'cafeteria_admin' }) {
+  const { user, userRole, loading, roleLoading } = useAuth();
+  
+  if (loading || roleLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
+  if (!user) {
+    return <Navigate to="/auth" />;
+  }
+  
+  if (userRole !== requiredRole && userRole !== 'system_admin') {
+    return <Navigate to="/" />;
+  }
+  
+  return <Layout>{children}</Layout>;
 }
 
 const App = () => (
@@ -55,6 +79,8 @@ const App = () => (
             <Route path="/budget" element={<ProtectedRoute><Budget /></ProtectedRoute>} />
             <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/system-admin" element={<AdminRoute requiredRole="system_admin"><SystemAdminDashboard /></AdminRoute>} />
+            <Route path="/cafeteria-admin" element={<AdminRoute requiredRole="cafeteria_admin"><CafeteriaAdminDashboard /></AdminRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
